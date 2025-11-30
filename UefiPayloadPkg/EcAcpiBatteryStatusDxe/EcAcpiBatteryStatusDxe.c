@@ -125,19 +125,31 @@ DetectEcType (
   VOID
   )
 {
-  UINTN  i;
+  UINTN       i;
+  EFI_STATUS  Status;
+
+  DEBUG ((DEBUG_INFO, "EcAcpiBattery: Starting EC type detection (checking %d profiles)\n", (sizeof (mEcProfiles) / sizeof (mEcProfiles[0]))));
 
   for (i = 0; i < (sizeof (mEcProfiles) / sizeof (mEcProfiles[0])); i++) {
+    DEBUG ((DEBUG_INFO, "EcAcpiBattery: Testing EC profile %d: %a\n", i, mEcProfiles[i].Name));
+
     if (mEcProfiles[i].CheckEcPresent != NULL) {
-      if (!EFI_ERROR (mEcProfiles[i].CheckEcPresent ())) {
+      DEBUG ((DEBUG_INFO, "EcAcpiBattery: Calling CheckEcPresent for %a\n", mEcProfiles[i].Name));
+      Status = mEcProfiles[i].CheckEcPresent ();
+      DEBUG ((DEBUG_INFO, "EcAcpiBattery: CheckEcPresent for %a returned %r\n", mEcProfiles[i].Name, Status));
+
+      if (!EFI_ERROR (Status)) {
         mEcBatteryPrivate->EcType   = mEcProfiles[i].Type;
         mEcBatteryPrivate->Profile  = &mEcProfiles[i];
         DEBUG ((DEBUG_INFO, "EcAcpiBattery: Detected %a\n", mEcProfiles[i].Name));
         return EFI_SUCCESS;
       }
+    } else {
+      DEBUG ((DEBUG_WARN, "EcAcpiBattery: Profile %a has NULL CheckEcPresent function\n", mEcProfiles[i].Name));
     }
   }
 
+  DEBUG ((DEBUG_INFO, "EcAcpiBattery: No EC type detected after checking all profiles\n"));
   return EFI_NOT_FOUND;
 }
 
